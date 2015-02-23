@@ -25,13 +25,16 @@ else:
     logging.basicConfig(level=_log_level, datefmt='%Y-%m-%d %H:%M')
 
 #Initialize global variables
+# _models_dir: ../models/
 _models_dir = config.get('GENERAL_CONFIG', 'models_dir')
 
 
 def load_training_data():
     # Load training data
+    # JSON (JavaScript Object NOtation) is a lightweight data interchange format
     json_data = open(config.get('GENERAL_CONFIG', 'roof_train_json'))
     roof_data = [json.loads(json_line) for json_line in json_data]
+    # data/image_metadata.csv contains information for each training image
     image_meta = pd.read_csv(config.get('GENERAL_CONFIG', 'roof_train_data'))
     roof_train = DataFrame(roof_data)
     roof_train['image_tag'] = roof_train.image.map(lambda name: name.strip().split('-')[0])
@@ -56,24 +59,34 @@ def bin_data(image_data, image_dir=None):
     :return: dict of bins
     """
     file_model = open(config.get('GENERAL_CONFIG', 'models_dir') + 'cluster_model.pkl', "r")
+    # Default image_dir is ../data/images/
     if image_dir is None:
         image_dir = config.get('GENERAL_CONFIG', 'image_dir')
+    # Read a string from the open file object file and interpret it as a pickle data stream, reconstructing and returning the original object hierarchy
     cluster_model = pickle.load(file_model)
     file_model.close()
+    # Returns image patch features for each image
     image_data['features'] = image_data.image.map(lambda im: image_to_features(image_dir+im))
+    # Turn these features into an array
     feat_array = np.array(image_data['features'].tolist())
+    # Run the cluster model on the feature array, not sure how "predict" or "transform" actually work though???
     image_data['cluster'] = cluster_model.predict(feat_array)
     image_data['cl_distance'] = cluster_model.transform(feat_array).min(axis=1)
+    # Return array of unique values in the object
     keys = image_data.cluster.unique()
+    # Groups images in image_data by cluster
     gb = image_data.groupby('cluster')
     data_bins = dict()
     for key in keys:
+        # Constructs NDFrame (N-dimensional DataFrame) from group with provided name
         data_bins[str(key)] = gb.get_group(key)
+    # Returns a dictionary containing image_data grouped by cluster
     return data_bins
 
-def image_to_features(image_path):
-    logging.info('Clustering: Extracting features ' + image_path)
-    img = cv2.imread(image_path)
+def image_to_features(image_patch):
+    logging.info('Clustering: Extracting features ' + image_patch)
+    img = cv2.imread(image_patch)
+    # Extract color features from image patch
     features = utils.color_feat(img)
     return features
 
@@ -106,14 +119,18 @@ class TrainModelFactory:
         self.image_dir = config.get('GENERAL_CONFIG', 'image_dir')
 
     def get_models(self):
+        # Returns all training data from train-data-2014-01-13.json and from image_metadata.csv
         training_data = load_training_data()
+        # Bin images based on type
         data_bins = bin_data(training_data)
         models = dict()
         if self.bins is None:
             self.bins = data_bins.keys()
         for binn in self.bins:
             try:
+                # Create RoofClassifierModel object
                 model = self.init_model(str(binn), data_bins)
+                # _models_dir: ../models/
                 model.save_model(_models_dir + self.file_prefix + str(binn) + ".pkl")
                 models[binn] = model
             except Exception:
