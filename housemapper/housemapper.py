@@ -10,6 +10,7 @@ from utils import *
 from ConfigParser import SafeConfigParser
 
 # Initialize configuration
+# Return the value of the environment variable varname if it exists, or value if it doesn’t
 config_file = os.getenv('HM_CONFIG', '../config/config.ini')
 config = SafeConfigParser()
 config.read(config_file)
@@ -184,27 +185,36 @@ class TrainRoofCountRegressionFactory(TrainRoofRegressionFactory):
 
 
 def download_division_images(division_name):
+    """
+
+    """
+    # Pulling constants out of config.ini file
+    # shape_helper = ../data/shapefiles/2002_admin_shapefiles/KEN_Admin6_2002_CBS.shp
     shape_helper = ShapeHelper(config.get('GENERAL_CONFIG', 'admin_shapefile'))
+    # box_pix = 400
     box_pix = config.getint('GENERAL_CONFIG', 'box_pix')
+    # zoom = 19
     zoom = config.getint('GENERAL_CONFIG', 'zoom')
+    # api_key = ""
     api_key = config.get('GENERAL_CONFIG', 'api_key')
+    # google_images = ../data/google_images
     google_images = config.get('GENERAL_CONFIG', 'google_images')
+    # Obtain coordinates in a grid with box_pix resolution inside the shapes contained in the list specified by division
     coords = shape_helper.coord_in_field('DIVNAME', division_name, box_pix, zoom)
     images = list()
     print(len(coords))
+    # For each coordinate tuple, create an image name, get satellite image from Google API
     for coord in coords:
         div_loc_subl = '%s-%s-%s-%s' % (coord['provname'], coord['divname'], coord['locname'], coord['slname'])
+        # Get satellite image from Google API, store in google_images folder
         image_name = save_google_image(coord['lat'], coord['lon'], api_key, google_images,
                           div_loc_subl.replace('/', '_'), box_pix, box_pix)
         coord['image'] = image_name
         images.append(coord)
+    # Creates a DataFrame object to hold the data for images, moves image names into the first column
     df = DataFrame(images)
     df.set_index('image', inplace=True)
+    # Order other columns
     df = df[['provname', 'divname', 'locname', 'slname', 'lat', 'lon']]
+    # This is going to be output into the base boro/karemo/uranga_images.csv files
     return df
-
-
-
-
-
-
