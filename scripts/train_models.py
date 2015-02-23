@@ -1,11 +1,20 @@
 __author__ = 'lluiscanet'
 
+# Adding housemapper directory to directories defined in sys.path
+import sys
+sys.path.insert(0,'../housemapper')
+
 import housemapper as hm
 import numpy as np
 import pickle
 
 #Roof classification models
+# Factory to generate trained models to classify the roofs
+# class_model_ is the file prefix
+# Creates the class_model_0-5.pkl files
+# Returns a TrainRoofClassifierFactory object
 train_factory = hm.TrainRoofClassifierFactory('class_model_')
+#
 roof_class_models = train_factory.get_models()
 for name in roof_class_models:
     score = roof_class_models[name].get_clf_performance()
@@ -31,7 +40,7 @@ for name in roof_count_models:
     size = len(roof_count_models[name].labels)
     print '%s : Roof Count MAE %s and size %s' % (name, str(mean_score), str(size))
 
-#Roof count models
+#Iron roof count models
 train_factory = hm.TrainRoofCountRegressionFactory('iron_count_model_', 'class_model_', 'number_iron')
 roof_iron_count_models = train_factory.get_models()
 for name in roof_iron_count_models:
@@ -47,4 +56,3 @@ for name in roof_iron_count_models:
 #
 # error = saved_model.get_mean_absolute_error()
 # print str(error)
-

@@ -59,6 +59,7 @@ def save_google_image(lat, lon, api_key, folder, name, height=400, width=400):
     image_name = "%s-%s-%s.png" % (name, lat, lon)
     fp = "%s/%s" % (folder, image_name)
     logging.info("Scraping %s,%s to %s" % (lat, lon, fp))
+    # Save image from Google into target folder under image_name
     urlretrieve(url, fp)
     return image_name
 
@@ -123,16 +124,26 @@ class ShapeHelper:
         :param filt: filter for the field in the shape file
         :param box_pix: width and height
         :param zoom: mercator zoom level to define the pixel resolution
-        :return coordenate dictionary
+        :return coordinate dictionary
         """
+        # Given the name of the field return shapeRecords that satified the filter requirement
         shape_records = self.filter_by_field(field_name, filt)
         coords = list()
         for shape_record in shape_records:
+            # Obtain a grid of latitude and longitude values
             lat_lon_grid = get_shape_grid(shape_record, box_pix, zoom)
+            # flatten returns a copy of the array collapsed in one dimension
+            # zip pairs each element in the first list with coresponding element in the second
             coord_tuples = zip(lat_lon_grid[1].flatten(), lat_lon_grid[0].flatten())
+            # in_polygon_project: Project point and polygon and return true if point inside projection
+            # merc_project: Mercator projector - a cylindrical map projection
+            # coord_tuples: Set of points to project
+            # offset_points: Offset points in shape file
             booleans = np.array(in_polygon_project(self.merc_project, coord_tuples, self.offset_points(shape_record.shape.points)))
             long_lat = np.array(coord_tuples)
+            # Keeps the grid points that are inside the projected polygon
             long_lat = long_lat[booleans]
+            # Turns the points into tuples (from an array)
             lat_lon_tuples = zip(long_lat[:, 1], long_lat[:, 0])
             patch_dicts =[ {'provname': shape_record.record[self.field_names['PROVNAME']],
                           'divname': shape_record.record[self.field_names['DIVNAME']],
@@ -140,6 +151,7 @@ class ShapeHelper:
                           'slname': shape_record.record[self.field_names['SLNAME']],
                           'lat': lat_lon_tuple[0],
                           'lon': lat_lon_tuple[1]} for lat_lon_tuple in lat_lon_tuples]
+            # Concatenate patch_dicts to the end of coords
             coords.extend(patch_dicts)
 
         return coords
@@ -169,9 +181,12 @@ def get_shape_grid(shape_record, box_pix, zoom):
     """
     range1 = lambda start, end, width: range(start, end+width, width)
     bbox = shape_record.shape.bbox
+    # Given latitude and longitude values, return the pixel location in mercator projection given zoom value
     x_min, y_max = lat_lon_to_pixel(bbox[1], bbox[0], zoom)
     x_max, y_min = lat_lon_to_pixel(bbox[3], bbox[2], zoom)
+    # Returning a 2-D array of pixel points
     pixel_grid = np.meshgrid(range1(0, y_max-y_min, box_pix), range1(0, x_max-x_min, box_pix))
+    # Return new latitude and longitude positions? Not sure how this one works
     lat_lon_grid = get_new_lat_lon_position(bbox[3], bbox[0], pixel_grid[0], pixel_grid[1], zoom)
     return lat_lon_grid
 
@@ -271,5 +286,3 @@ def polygon_project_area(project, polygon, key=None):
     # Translate to spherical Mercator or Google projection
     poly_g = transform(project, poly)
     return poly_g.area
-
-
