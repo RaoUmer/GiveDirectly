@@ -1,5 +1,9 @@
 __author__ = 'lluiscanet'
 
+# Adding housemapper directory to directories defined in sys.path
+import sys
+sys.path.insert(0,'../housemapper')
+
 import housemapper as hm
 import numpy as np
 import pickle
