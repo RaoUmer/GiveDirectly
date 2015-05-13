@@ -8,6 +8,7 @@ import logging
 
 from pandas import DataFrame
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn import svm
 from sklearn.cross_validation import cross_val_score
 
 type_dict = {'thatched': 0, 'iron': 1}
@@ -86,6 +87,7 @@ class RoofClassifierModel(ImageAnalysisModel):
         logging.info('Initialize Roof Classification Model')
         if model is None:
             model = RandomForestClassifier(n_estimators=50)
+            # model = svm.SVC()
         ImageAnalysisModel.__init__(self, name, train_collect, image_dir, model)
 
     def row_to_features(self, img, row):
