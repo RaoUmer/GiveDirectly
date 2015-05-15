@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import cv2
 import logging
+import copy
 
 from pandas import DataFrame
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -233,12 +234,23 @@ class RoofRatioRegressionModel(RegressionModel):
     def get_threshold_features(self, img, template, thres, roof_classifier):
         moments = self.detect_objects(img, template, thres)
         num_obj = moments.shape[0]
+        image = copy.copy(img)
         if num_obj == 0:
             return num_obj, 0
         else:
             #Get classfication scores
             patches = [utils.crop_from_center(img, x, y) for x, y in zip(moments['x'], moments['y'])]
+            template_type = '';
+            if template[0][0] == self.grass_temp[0][0]:
+                template_type = 'grass'
+            if template[0][0] == self.iron_temp[0][0]:
+                template_type = 'iron'
+
+            for x, y in zip(moments['x'], moments['y']):
+                p = utils.crop_from_center(img, x, y)
+                cv2.putText(image,str(roof_classifier.image_to_features(p)[0][1]), (int(x),int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (220,20,60))
             #Probabilities of being iron
             scores = [roof_classifier.image_to_features(patch)[0][1] for patch in patches]
             mean_sc = np.mean(scores)
+            cv2.imwrite('../examine/iron_prob_for_' + template_type + '_template_' + str(mean_sc) + '.png', image)
             return num_obj, mean_sc
