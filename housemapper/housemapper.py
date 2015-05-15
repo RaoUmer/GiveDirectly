@@ -84,7 +84,7 @@ def bin_data(image_data, image_dir=None):
     return data_bins
 
 def image_to_features(image_patch):
-    logging.info('Clustering: Extracting features ' + image_patch)
+    #logging.info('Clustering: Extracting features ' + image_patch)
     img = cv2.imread(image_patch)
     # Extract color features from image patch
     features = utils.color_feat(img)
