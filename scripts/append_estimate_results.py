@@ -60,6 +60,7 @@ iron_df.set_index('image', inplace=True)
 iron_df.to_csv(out_image_csv)
 
 '''
+
 #Evaluate roof ratios
 image_data = pd.read_csv('../examine/subset_classify_village_area_images.csv')
 data_bins = hm.bin_data(image_data, '../data/classify_images/')

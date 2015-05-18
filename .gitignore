@@ -9,3 +9,4 @@ venv/*
 *.bmp
 *.csv
 *.xlsx
+*.png
